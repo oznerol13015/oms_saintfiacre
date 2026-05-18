@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OMS — Occupational Medicine Service</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f0d14; --surface: #1a1625; --panel: #211c30;
+      --border: #352d4a; --accent: #7c5cbf; --accent2: #a87dff;
+      --text: #e8e0f5; --muted: #8b7faa; --success: #4ecca3;
+      --error: #ff6b6b; --input-bg: #2a2240;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: #0d0b12f0; backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; height: 52px; gap: 12px;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .logo-icon { width: 30px; height: 30px; background: var(--accent); border-radius: 7px; display: grid; place-items: center; font-family: 'DM Mono', monospace; font-size: 12px; color: #fff; }
+    .logo-text h1 { font-size: 12px; font-weight: 600; }
+    .logo-text p  { font-size: 10px; color: var(--muted); }
+    nav { display: flex; gap: 6px; }
+    .nav-btn { display: flex; align-items: center; gap: 5px; padding: 5px 13px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 11px; cursor: pointer; transition: all .2s; }
+    .nav-btn:hover, .nav-btn.active { background: var(--panel); color: var(--text); border-color: var(--accent); }
+    .nav-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+    .archive-btn { display: flex; align-items: center; gap: 5px; padding: 5px 13px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 11px; cursor: pointer; transition: all .2s; }
+    .archive-btn:hover { background: var(--panel); color: var(--text); }
+
+
+
+    /* ── PIN BANNER ── */
+    #pin-banner { background: linear-gradient(135deg, #2a1a3e, #1e1530); border-bottom: 1px solid var(--accent); padding: 8px 24px; display: flex; align-items: center; gap: 10px; }
+    #pin-banner label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--accent2); white-space: nowrap; }
+    #pin-input { width: 130px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 5px; padding: 5px 10px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; letter-spacing: .2em; outline: none; transition: border-color .2s; }
+    #pin-input:focus { border-color: var(--accent2); }
+    #pin-error { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--error); display: none; }
+    #pin-unlock-btn { padding: 5px 14px; background: var(--accent); color: #fff; border: none; border-radius: 5px; font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .2s; }
+    #pin-unlock-btn:hover { background: var(--accent2); }
+
+    /* ── WEBHOOK BANNER (caché par défaut) ── */
+    #webhook-banner { background: linear-gradient(135deg, #1a2a1e, #151e15); border-bottom: 1px solid var(--success); padding: 8px 24px; display: none; align-items: center; gap: 10px; }
+    #webhook-banner label { font-size: 10px; font-family: 'DM Mono', monospace; color: var(--success); white-space: nowrap; }
+    #webhook-url { flex: 1; background: var(--input-bg); border: 1px solid var(--border); border-radius: 5px; padding: 5px 10px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 10px; outline: none; transition: border-color .2s; }
+    #webhook-url:focus { border-color: var(--success); }
+    .wh-status { font-size: 10px; font-family: 'DM Mono', monospace; white-space: nowrap; }
+    #save-webhook { padding: 5px 12px; background: #2a5c3a; color: #fff; border: none; border-radius: 5px; font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background .2s; white-space: nowrap; }
+    #save-webhook:hover { background: #3a7c4a; }
+    #lock-btn { padding: 5px 10px; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 5px; font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all .2s; white-space: nowrap; }
+    #lock-btn:hover { color: var(--error); border-color: var(--error); }
+
+    .page { display: none; }
+    .page.active { display: block; }
+    main { max-width: 800px; margin: 0 auto; padding: 28px 20px 80px; }
+
+    .section { margin-bottom: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; animation: fadeUp .35s ease both; }
+    .section:nth-child(1){animation-delay:.04s} .section:nth-child(2){animation-delay:.08s} .section:nth-child(3){animation-delay:.12s} .section:nth-child(4){animation-delay:.16s} .section:nth-child(5){animation-delay:.20s} .section:nth-child(6){animation-delay:.24s} .section:nth-child(7){animation-delay:.28s} .section:nth-child(8){animation-delay:.32s}
+    .section-header { padding: 11px 18px; border-bottom: 1px solid var(--border); background: var(--panel); }
+    .section-header h2 { font-family: 'DM Serif Display', serif; font-size: 14px; font-weight: 400; color: var(--accent2); }
+    .section-body { padding: 18px; }
+
+    .row { display: grid; gap: 12px; margin-bottom: 12px; }
+    .row:last-child { margin-bottom: 0; }
+    .col-1 { grid-template-columns: 1fr; }
+    .col-2 { grid-template-columns: 1fr 1fr; }
+    .col-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .col-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    @media (max-width: 600px) { .col-2,.col-3,.col-4 { grid-template-columns: 1fr; } }
+
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+    .field input, .field select, .field textarea { background: var(--input-bg); border: 1px solid var(--border); border-radius: 5px; padding: 7px 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; transition: border-color .2s, box-shadow .2s; width: 100%; }
+    .field input::placeholder, .field textarea::placeholder { color: #5a5070; }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent2); box-shadow: 0 0 0 3px #7c5cbf22; }
+    .field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b7faa' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 26px; cursor: pointer; }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .subsection-label { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; margin: 14px 0 10px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+
+    .question-block { padding: 13px 0; border-bottom: 1px solid var(--border); }
+    .question-block:last-child { border-bottom: none; }
+    .question-title { font-size: 13px; font-weight: 500; margin-bottom: 10px; color: var(--text); }
+    .radio-group { display: flex; gap: 22px; flex-wrap: wrap; }
+    .radio-opt { display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; }
+    .radio-opt input[type=radio] { display: none; }
+    .radio-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); background: var(--input-bg); transition: all .2s; flex-shrink: 0; position: relative; }
+    .radio-opt input[type=radio]:checked ~ .radio-dot { border-color: var(--accent2); background: var(--accent); }
+    .radio-opt input[type=radio]:checked ~ .radio-dot::after { content: ''; position: absolute; inset: 3px; border-radius: 50%; background: #fff; }
+    .radio-label { font-size: 12px; color: var(--muted); transition: color .2s; }
+    .radio-opt:has(input:checked) .radio-label { color: var(--text); }
+
+    .submit-zone { padding: 20px 0 0; display: flex; justify-content: center; }
+    .submit-btn { width: 100%; max-width: 500px; padding: 13px; background: var(--accent); color: #fff; border: none; border-radius: 7px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: .04em; cursor: pointer; transition: all .25s; }
+    .submit-btn:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 6px 24px #7c5cbf44; }
+    .submit-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--panel); border: 1px solid var(--border); border-radius: 7px; padding: 10px 20px; font-size: 13px; box-shadow: 0 8px 32px #00000066; transition: transform .35s cubic-bezier(.34,1.56,.64,1); z-index: 999; white-space: nowrap; }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+    #toast.success { border-color: var(--success); color: var(--success); }
+    #toast.error   { border-color: var(--error);   color: var(--error); }
+    .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid #ffffff44; border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 4px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">O</div>
+    <div class="logo-text"><h1>OMS</h1><p>Occupational Médecin Service</p></div>
+  </div>
+  <nav>
+    <button class="nav-btn active" onclick="showPage('visite-medicale',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 000-7.78z"/></svg>
+      Visite Médicale
+    </button>
+    <button class="nav-btn" onclick="showPage('ppa-samp',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      PPA SAMP
+    </button>
+    <button class="nav-btn" onclick="showPage('visite-g6',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Visite G6
+    </button>
+  </nav>
+  <button class="archive-btn">
+    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+    Archives
+  </button>
+</header>
+
+
+
+<!-- ── PIN BANNER ── -->
+<div id="pin-banner">
+  <label>🔒 ACCÈS ADMIN</label>
+  <input type="password" id="pin-input" placeholder="••••••••" maxlength="20" />
+  <span id="pin-error">Code incorrect</span>
+  <button id="pin-unlock-btn">Déverrouiller</button>
+</div>
+
+<!-- ── WEBHOOK BANNER (visible après PIN) ── -->
+<div id="webhook-banner">
+  <label>⚙ DISCORD WEBHOOK</label>
+  <input type="url" id="webhook-url" placeholder="https://discord.com/api/webhooks/…" />
+  <span class="wh-status" id="wh-status">—</span>
+  <button id="save-webhook">Enregistrer</button>
+  <button id="lock-btn">🔒 Verrouiller</button>
+</div>
+<div class="page active" id="page-visite-medicale">
+<main>
+  <form id="form-vm" novalidate>
+    <div class="section">
+      <div class="section-header"><h2>Identité Praticien</h2></div>
+      <div class="section-body">
+        <div class="row col-2">
+          <div class="field"><label>Nom et Prénom</label><input type="text" name="vm_prat_nom" /></div>
+          <div class="field"><label>Grade</label><input type="text" name="vm_prat_grade" /></div>
+        </div>
+        <div class="row col-2">
+          <div class="field"><label>Hôpital</label><select name="vm_prat_hopital"><option>SFMC</option><option>CHU Nord</option><option>Hôpital de la Timone</option><option>Clinique Monticelli</option></select></div>
+          <div class="field"><label>Date</label><input type="date" name="vm_prat_date" /></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Identité Patient</h2></div>
+      <div class="section-body">
+        <div class="row col-3">
+          <div class="field"><label>Nom et Prénom</label><input type="text" name="vm_pat_nom" /></div>
+          <div class="field"><label>Date de naissance</label><input type="date" name="vm_pat_ddn" /></div>
+          <div class="field"><label>Id unique</label><input type="text" name="vm_pat_id" /></div>
+        </div>
+        <div class="row col-3">
+          <div class="field"><label>Poste occupé</label><input type="text" name="vm_pat_poste" /></div>
+          <div class="field"><label>Entreprise</label><input type="text" name="vm_pat_entreprise" /></div>
+          <div class="field"><label>Téléphone</label><input type="tel" name="vm_pat_tel" /></div>
+        </div>
+        <div class="row col-1">
+          <div class="field"><label>Numéro d'urgence</label><input type="tel" name="vm_pat_urgence" /></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Condition physique</h2></div>
+      <div class="section-body">
+        <div class="row col-4">
+          <div class="field"><label>Poids (kg)</label><input type="number" name="vm_poids" /></div>
+          <div class="field"><label>Taille (cm)</label><input type="number" name="vm_taille" /></div>
+          <div class="field"><label>Endurance</label><input type="text" name="vm_endurance" /></div>
+          <div class="field"><label>Force musculaire</label><input type="text" name="vm_force" /></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Constantes vitales</h2></div>
+      <div class="section-body">
+        <div class="row col-4">
+          <div class="field"><label>Fréquence cardiaque</label><select name="vm_fc"><option value="">Sélectionner</option><option>Bonne</option><option>Tachycardie</option><option>Bradycardie</option><option>Arythmie</option></select></div>
+          <div class="field"><label>Tension artérielle</label><select name="vm_ta"><option value="">Sélectionner</option><option>Bonne</option><option>Hypertension</option><option>Hypotension</option></select></div>
+          <div class="field"><label>Groupe sanguin</label><select name="vm_gs"><option>A</option><option>B</option><option>AB</option><option>O</option></select></div>
+          <div class="field"><label>Modifier</label><select name="vm_rhesus"><option>+</option><option>-</option></select></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Hygiène de vie</h2></div>
+      <div class="section-body">
+        <div class="row col-3">
+          <div class="field"><label>Alimentation</label><input type="text" name="vm_alim" /></div>
+          <div class="field"><label>Sport</label><input type="text" name="vm_sport" /></div>
+          <div class="field"><label>Hobby</label><input type="text" name="vm_hobby" /></div>
+        </div>
+        <div class="row col-1">
+          <div class="field"><label>État du patient</label><textarea name="vm_etat" placeholder="Exemple : Endormissement, cercle social…"></textarea></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Antécédents et déclarations</h2></div>
+      <div class="section-body">
+        <div class="row col-3">
+          <div class="field"><label>Antécédents médicaux</label><input type="text" name="vm_ant_med" /></div>
+          <div class="field"><label>Antécédents psychiatriques</label><select name="vm_ant_psy"><option>Non</option><option>Oui</option><option>En cours d'évaluation</option></select></div>
+          <div class="field"><label>Traitement en cours</label><input type="text" name="vm_traitement" /></div>
+        </div>
+        <div class="subsection-label">Consommation</div>
+        <div class="row col-3">
+          <div class="field"><label>Alcool</label><select name="vm_alcool"><option>Non</option><option>Occasionnel</option><option>Régulier</option><option>Dépendance</option></select></div>
+          <div class="field"><label>Tabac</label><select name="vm_tabac"><option>Non</option><option>Ex-fumeur</option><option>Fumeur</option></select></div>
+          <div class="field"><label>Drogue</label><select name="vm_drogue"><option>Non</option><option>Occasionnel</option><option>Régulier</option></select></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Conclusion Médicale</h2></div>
+      <div class="section-body">
+        <div class="row col-1"><div class="field"><label>Observation</label><textarea name="vm_observation"></textarea></div></div>
+        <div class="row col-1"><div class="field"><label>Recommandation</label><textarea name="vm_recommandation"></textarea></div></div>
+      </div>
+    </div>
+    <div class="submit-zone"><button type="submit" class="submit-btn" id="btn-submit-vm">Enregistrer la visite</button></div>
+  </form>
+</main>
+</div>
+
+<!-- ═══ PAGE 2 — PPA SAMP ═══ -->
+<div class="page" id="page-ppa-samp">
+<main>
+  <form id="form-ppa" novalidate>
+    <div class="section">
+      <div class="section-header"><h2>Identité Praticien</h2></div>
+      <div class="section-body">
+        <div class="row col-2">
+          <div class="field"><label>Nom et Prénom</label><input type="text" name="ppa_prat_nom" /></div>
+          <div class="field"><label>Grade</label><input type="text" name="ppa_prat_grade" /></div>
+        </div>
+        <div class="row col-2">
+          <div class="field"><label>Hôpital</label><select name="ppa_prat_hopital"><option>SFMC</option><option>CHU Nord</option><option>Hôpital de la Timone</option></select></div>
+          <div class="field"><label>Date</label><input type="date" name="ppa_prat_date" /></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Identité Agent</h2></div>
+      <div class="section-body">
+        <div class="row col-3">
+          <div class="field"><label>Nom et Prénom</label><input type="text" name="ppa_agent_nom" /></div>
+          <div class="field"><label>Date de naissance</label><input type="date" name="ppa_agent_ddn" /></div>
+          <div class="field"><label>Id unique</label><input type="text" name="ppa_agent_id" /></div>
+        </div>
+        <div class="row col-3">
+          <div class="field"><label>Grade</label><input type="text" name="ppa_agent_grade" /></div>
+          <div class="field"><label>Matricule</label><input type="text" name="ppa_agent_matricule" /></div>
+          <div class="field"><label>District</label><input type="text" name="ppa_agent_district" /></div>
+        </div>
+        <div class="row col-2">
+          <div class="field"><label>Téléphone</label><input type="tel" name="ppa_agent_tel" /></div>
+          <div class="field"><label>Numéro d'urgence</label><input type="tel" name="ppa_agent_urgence" /></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Condition physique</h2></div>
+      <div class="section-body">
+        <div class="row col-4">
+          <div class="field"><label>Poids (kg)</label><input type="number" name="ppa_poids" /></div>
+          <div class="field"><label>Taille (cm)</label><input type="number" name="ppa_taille" /></div>
+          <div class="field"><label>Endurance</label><input type="text" name="ppa_endurance" /></div>
+          <div class="field"><label>Force musculaire</label><input type="text" name="ppa_force" /></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Constantes vitales</h2></div>
+      <div class="section-body">
+        <div class="row col-4">
+          <div class="field"><label>Fréquence cardiaque</label><select name="ppa_fc"><option value="">Sélectionner</option><option>Bonne</option><option>Tachycardie</option><option>Bradycardie</option></select></div>
+          <div class="field"><label>Tension artérielle</label><select name="ppa_ta"><option value="">Sélectionner</option><option>Bonne</option><option>Hypertension</option><option>Hypotension</option></select></div>
+          <div class="field"><label>Groupe sanguin</label><select name="ppa_gs"><option>A</option><option>B</option><option>AB</option><option>O</option></select></div>
+          <div class="field"><label>Modifier</label><select name="ppa_rhesus"><option>+</option><option>-</option></select></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Hygiène de vie</h2></div>
+      <div class="section-body">
+        <div class="row col-3">
+          <div class="field"><label>Alimentation</label><input type="text" name="ppa_alim" /></div>
+          <div class="field"><label>Sport</label><input type="text" name="ppa_sport" /></div>
+          <div class="field"><label>Hobby</label><input type="text" name="ppa_hobby" /></div>
+        </div>
+        <div class="row col-1">
+          <div class="field"><label>État du patient</label><textarea name="ppa_etat" placeholder="Exemple : Endormissement, cercle social…"></textarea></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Antécédents et déclarations</h2></div>
+      <div class="section-body">
+        <div class="row col-3">
+          <div class="field"><label>Antécédents médicaux</label><input type="text" name="ppa_ant_med" /></div>
+          <div class="field"><label>Antécédents psychiatriques</label><select name="ppa_ant_psy"><option>Non</option><option>Oui</option><option>En cours d'évaluation</option></select></div>
+          <div class="field"><label>Traitement en cours</label><input type="text" name="ppa_traitement" /></div>
+        </div>
+        <div class="subsection-label">Consommation</div>
+        <div class="row col-3">
+          <div class="field"><label>Alcool</label><select name="ppa_alcool"><option>Non</option><option>Occasionnel</option><option>Régulier</option><option>Dépendance</option></select></div>
+          <div class="field"><label>Tabac</label><select name="ppa_tabac"><option>Non</option><option>Ex-fumeur</option><option>Fumeur</option></select></div>
+          <div class="field"><label>Drogue</label><select name="ppa_drogue"><option>Non</option><option>Occasionnel</option><option>Régulier</option></select></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Aptitude du permis de port d'arme</h2></div>
+      <div class="section-body"><div id="ppa-questions"></div></div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Conclusion Médicale</h2></div>
+      <div class="section-body">
+        <div class="row col-1"><div class="field"><label>Observation</label><textarea name="ppa_observation"></textarea></div></div>
+        <div class="row col-1"><div class="field"><label>Recommandation</label><textarea name="ppa_recommandation"></textarea></div></div>
+      </div>
+    </div>
+    <div class="submit-zone"><button type="submit" class="submit-btn" id="btn-submit-ppa">Enregistrer PPA SAMP</button></div>
+  </form>
+</main>
+</div>
+
+<!-- ═══ PAGE 3 — VISITE G6 ═══ -->
+<div class="page" id="page-visite-g6">
+<main>
+  <form id="form-g6" novalidate>
+    <div class="section">
+      <div class="section-header"><h2>Identité Praticien</h2></div>
+      <div class="section-body">
+        <div class="row col-2">
+          <div class="field"><label>Nom et Prénom</label><input type="text" name="g6_prat_nom" /></div>
+          <div class="field"><label>Grade</label><input type="text" name="g6_prat_grade" /></div>
+        </div>
+        <div class="row col-2">
+          <div class="field"><label>Hôpital</label><select name="g6_prat_hopital"><option>SFMC</option><option>CHU Nord</option><option>Hôpital de la Timone</option></select></div>
+          <div class="field"><label>Date</label><input type="date" name="g6_prat_date" /></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Identité Agent</h2></div>
+      <div class="section-body">
+        <div class="row col-3">
+          <div class="field"><label>Nom et Prénom</label><input type="text" name="g6_agent_nom" /></div>
+          <div class="field"><label>Date de naissance</label><input type="date" name="g6_agent_ddn" /></div>
+          <div class="field"><label>Id unique</label><input type="text" name="g6_agent_id" /></div>
+        </div>
+        <div class="row col-3">
+          <div class="field"><label>Grade</label><input type="text" name="g6_agent_grade" /></div>
+          <div class="field"><label>Matricule</label><input type="text" name="g6_agent_matricule" /></div>
+          <div class="field"><label>District</label><input type="text" name="g6_agent_district" /></div>
+        </div>
+        <div class="row col-2">
+          <div class="field"><label>Téléphone</label><input type="tel" name="g6_agent_tel" /></div>
+          <div class="field"><label>Numéro d'urgence</label><input type="tel" name="g6_agent_urgence" /></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Condition physique</h2></div>
+      <div class="section-body">
+        <div class="row col-4">
+          <div class="field"><label>Poids (kg)</label><input type="number" name="g6_poids" /></div>
+          <div class="field"><label>Taille (cm)</label><input type="number" name="g6_taille" /></div>
+          <div class="field"><label>Endurance</label><input type="text" name="g6_endurance" /></div>
+          <div class="field"><label>Force musculaire</label><input type="text" name="g6_force" /></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Constantes vitales</h2></div>
+      <div class="section-body">
+        <div class="row col-4">
+          <div class="field"><label>Fréquence cardiaque</label><select name="g6_fc"><option value="">Sélectionner</option><option>Bonne</option><option>Tachycardie</option><option>Bradycardie</option></select></div>
+          <div class="field"><label>Tension artérielle</label><select name="g6_ta"><option value="">Sélectionner</option><option>Bonne</option><option>Hypertension</option><option>Hypotension</option></select></div>
+          <div class="field"><label>Groupe sanguin</label><select name="g6_gs"><option>A</option><option>B</option><option>AB</option><option>O</option></select></div>
+          <div class="field"><label>Modifier</label><select name="g6_rhesus"><option>+</option><option>-</option></select></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Hygiène de vie</h2></div>
+      <div class="section-body">
+        <div class="row col-3">
+          <div class="field"><label>Alimentation</label><input type="text" name="g6_alim" /></div>
+          <div class="field"><label>Sport</label><input type="text" name="g6_sport" /></div>
+          <div class="field"><label>Hobby</label><input type="text" name="g6_hobby" /></div>
+        </div>
+        <div class="row col-1">
+          <div class="field"><label>État du patient</label><textarea name="g6_etat" placeholder="Exemple : Endormissement, cercle social…"></textarea></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Antécédents et déclarations</h2></div>
+      <div class="section-body">
+        <div class="row col-3">
+          <div class="field"><label>Antécédents médicaux</label><input type="text" name="g6_ant_med" /></div>
+          <div class="field"><label>Antécédents psychiatriques</label><select name="g6_ant_psy"><option>Non</option><option>Oui</option><option>En cours d'évaluation</option></select></div>
+          <div class="field"><label>Traitement en cours</label><input type="text" name="g6_traitement" /></div>
+        </div>
+        <div class="subsection-label">Consommation</div>
+        <div class="row col-3">
+          <div class="field"><label>Alcool</label><select name="g6_alcool"><option>Non</option><option>Occasionnel</option><option>Régulier</option><option>Dépendance</option></select></div>
+          <div class="field"><label>Tabac</label><select name="g6_tabac"><option>Non</option><option>Ex-fumeur</option><option>Fumeur</option></select></div>
+          <div class="field"><label>Drogue</label><select name="g6_drogue"><option>Non</option><option>Occasionnel</option><option>Régulier</option></select></div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>PPA</h2></div>
+      <div class="section-body"><div id="g6-questions"></div></div>
+    </div>
+    <div class="section">
+      <div class="section-header"><h2>Conclusion Médicale</h2></div>
+      <div class="section-body">
+        <div class="row col-1"><div class="field"><label>Observation</label><textarea name="g6_observation"></textarea></div></div>
+        <div class="row col-1"><div class="field"><label>Recommandation</label><textarea name="g6_recommandation"></textarea></div></div>
+      </div>
+    </div>
+    <div class="submit-zone"><button type="submit" class="submit-btn" id="btn-submit-g6">Enregistrer Visite G6</button></div>
+  </form>
+</main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── NAV ──
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ── BUILD QUESTIONS ──
+function buildQuestions(containerId, prefix) {
+  const c = document.getElementById(containerId);
+  let html = '';
+  for (let i = 1; i <= 10; i++) {
+    html += `<div class="question-block">
+      <div class="question-title">Question ${i}</div>
+      <div class="radio-group">
+        <label class="radio-opt"><input type="radio" name="${prefix}_q${i}" value="Bonne réponse"><span class="radio-dot"></span><span class="radio-label">Bonne réponse</span></label>
+        <label class="radio-opt"><input type="radio" name="${prefix}_q${i}" value="Moyenne"><span class="radio-dot"></span><span class="radio-label">Moyenne</span></label>
+        <label class="radio-opt"><input type="radio" name="${prefix}_q${i}" value="Mauvaise"><span class="radio-dot"></span><span class="radio-label">Mauvaise</span></label>
+      </div>
+    </div>`;
+  }
+  c.innerHTML = html;
+}
+buildQuestions('ppa-questions', 'ppa');
+buildQuestions('g6-questions', 'g6');
+
+// ── PIN & WEBHOOK ──
+const PIN_HASH = '290313106cc9b49c371f57cb7c9616cd591af5d7e9bb7fe1210b69c803b6bf66'; // SHA-256 de 25122005
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function showWebhookBanner() {
+  document.getElementById('pin-banner').style.display = 'none';
+  const wb = document.getElementById('webhook-banner');
+  wb.style.display = 'flex';
+  const saved = localStorage.getItem('oms_webhook');
+  if (saved) {
+    document.getElementById('webhook-url').value = saved;
+    document.getElementById('wh-status').textContent = '✓ Configuré';
+    document.getElementById('wh-status').style.color = 'var(--success)';
+  }
+}
+
+function lockWebhook() {
+  document.getElementById('webhook-banner').style.display = 'none';
+  document.getElementById('pin-banner').style.display = 'flex';
+  document.getElementById('pin-input').value = '';
+  document.getElementById('pin-error').style.display = 'none';
+}
+
+document.getElementById('pin-unlock-btn').addEventListener('click', async () => {
+  const val = document.getElementById('pin-input').value;
+  const hash = await sha256(val);
+  if (hash === PIN_HASH) {
+    showWebhookBanner();
+  } else {
+    const err = document.getElementById('pin-error');
+    err.style.display = 'inline';
+    document.getElementById('pin-input').value = '';
+    setTimeout(() => { err.style.display = 'none'; }, 2000);
+  }
+});
+
+document.getElementById('pin-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('pin-unlock-btn').click();
+});
+
+document.getElementById('save-webhook').addEventListener('click', () => {
+  const url = document.getElementById('webhook-url').value.trim();
+  if (!url.startsWith('https://discord.com/api/webhooks/')) { showToast('URL Discord invalide', 'error'); return; }
+  localStorage.setItem('oms_webhook', url);
+  document.getElementById('wh-status').textContent = '✓ Enregistré';
+  document.getElementById('wh-status').style.color = 'var(--success)';
+  showToast('Webhook enregistré !', 'success');
+});
+
+document.getElementById('lock-btn').addEventListener('click', lockWebhook);
+
+// ── TOAST ──
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = (type||'success') + ' show';
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+// ── HELPERS ──
+// Récupère la valeur d'un champ, retourne '—' si vide (jamais une chaîne vide)
+function fv(name, form) {
+  const el = form.elements[name];
+  if (!el) return '—';
+  const v = el.value ? el.value.trim() : '';
+  return v || '—';
+}
+
+// Tronque une valeur à 1024 caractères (limite Discord par field)
+function safe(v) {
+  if (!v || v === '—') return '—';
+  return v.length > 1024 ? v.slice(0, 1021) + '…' : v;
+}
+
+// Crée un field Discord valide (name et value jamais vides)
+function field(name, value, inline = true) {
+  return { name: name || '​', value: safe(value) || '—', inline };
+}
+
+// Génère les fields de questions (radios)
+function qFields(form, prefix) {
+  const arr = [];
+  for (let i = 1; i <= 10; i++) {
+    arr.push(field('Q' + i, fv(prefix + '_q' + i, form), true));
+  }
+  return arr;
+}
+
+// Découpe un tableau de fields en chunks de 25 max (limite Discord)
+function chunkFields(fields, size = 25) {
+  const chunks = [];
+  for (let i = 0; i < fields.length; i += size) {
+    chunks.push(fields.slice(i, i + size));
+  }
+  return chunks;
+}
+
+// ── DISCORD SEND ──
+// Envoie un ou plusieurs embeds (découpés automatiquement si > 25 fields)
+async function sendToDiscord(title, color, allFields, btnEl) {
+  const url = localStorage.getItem('oms_webhook');
+  if (!url) { showToast('Configurez le webhook Discord (accès admin requis)', 'error'); return; }
+
+  const prev = btnEl.innerHTML;
+  btnEl.disabled = true;
+  btnEl.innerHTML = '<span class="spinner"></span> Envoi…';
+
+  try {
+    const chunks = chunkFields(allFields, 25);
+    const embeds = chunks.map((fields, idx) => ({
+      title: idx === 0 ? title : `${title} (suite ${idx + 1})`,
+      color,
+      fields,
+      ...(idx === 0 ? { timestamp: new Date().toISOString() } : {}),
+      ...(idx === chunks.length - 1 ? { footer: { text: 'OMS · ' + new Date().toLocaleString('fr-FR') } } : {}),
+    }));
+
+    // Discord accepte max 10 embeds par message
+    // On envoie par batch de 10 si nécessaire
+    for (let i = 0; i < embeds.length; i += 10) {
+      const batch = embeds.slice(i, i + 10);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: 'OMS', embeds: batch }),
+      });
+
+      if (!res.ok && res.status !== 204) {
+        const errText = await res.text().catch(() => '');
+        console.error('Discord error', res.status, errText);
+        showToast('Erreur Discord : ' + res.status, 'error');
+        return;
+      }
+    }
+
+    showToast('✓ Envoyé sur Discord !', 'success');
+
+  } catch (e) {
+    console.error(e);
+    showToast('Erreur réseau', 'error');
+  } finally {
+    btnEl.disabled = false;
+    btnEl.innerHTML = prev;
+  }
+}
+
+// ── VISITE MÉDICALE ──
+document.getElementById('form-vm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target;
+
+  const poids = fv('vm_poids', f);
+  const taille = fv('vm_taille', f);
+
+  await sendToDiscord(
+    '📋 Visite Médicale — ' + fv('vm_pat_nom', f),
+    0x7c5cbf,
+    [
+      // Praticien
+      field('👨‍⚕️ Praticien',   fv('vm_prat_nom', f)),
+      field('🎖 Grade',         fv('vm_prat_grade', f)),
+      field('🏥 Hôpital',       fv('vm_prat_hopital', f)),
+      field('📅 Date',          fv('vm_prat_date', f)),
+      // Patient
+      field('🧑 Patient',       fv('vm_pat_nom', f)),
+      field('🎂 Naissance',     fv('vm_pat_ddn', f)),
+      field('🪪 ID',            fv('vm_pat_id', f)),
+      field('💼 Poste',         fv('vm_pat_poste', f)),
+      field('🏢 Entreprise',    fv('vm_pat_entreprise', f)),
+      field('📞 Tél',           fv('vm_pat_tel', f)),
+      field('🆘 Urgence',       fv('vm_pat_urgence', f), false),
+      // Physique
+      field('⚖️ Poids',         poids !== '—' ? poids + ' kg' : '—'),
+      field('📏 Taille',        taille !== '—' ? taille + ' cm' : '—'),
+      field('💪 Endurance',     fv('vm_endurance', f)),
+      field('🦾 Force',         fv('vm_force', f)),
+      // Constantes
+      field('❤️ FC',            fv('vm_fc', f)),
+      field('🩸 Tension',       fv('vm_ta', f)),
+      field('🩸 Groupe/Rh',     fv('vm_gs', f) + ' ' + fv('vm_rhesus', f)),
+      // Hygiène
+      field('🥗 Alimentation',  fv('vm_alim', f)),
+      field('🏃 Sport',         fv('vm_sport', f)),
+      field('🎯 Hobby',         fv('vm_hobby', f)),
+      field('🧠 État patient',  fv('vm_etat', f), false),
+      // Antécédents
+      field('📂 Ant. médicaux', fv('vm_ant_med', f)),
+      field('🧬 Ant. psy.',     fv('vm_ant_psy', f)),
+      field('💊 Traitement',    fv('vm_traitement', f)),
+      // Consommation
+      field('🍺 Alcool',        fv('vm_alcool', f)),
+      field('🚬 Tabac',         fv('vm_tabac', f)),
+      field('💊 Drogue',        fv('vm_drogue', f)),
+      // Conclusion
+      field('📝 Observation',   fv('vm_observation', f), false),
+      field('✅ Recommandation', fv('vm_recommandation', f), false),
+    ],
+    document.getElementById('btn-submit-vm')
+  );
+});
+
+// ── PPA SAMP ──
+document.getElementById('form-ppa').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target;
+
+  const poids = fv('ppa_poids', f);
+  const taille = fv('ppa_taille', f);
+
+  await sendToDiscord(
+    '🛡️ PPA SAMP — ' + fv('ppa_agent_nom', f),
+    0x5c7cbf,
+    [
+      field('👨‍⚕️ Praticien',    fv('ppa_prat_nom', f)),
+      field('🎖 Grade',          fv('ppa_prat_grade', f)),
+      field('🏥 Hôpital',        fv('ppa_prat_hopital', f)),
+      field('📅 Date',           fv('ppa_prat_date', f)),
+      field('🕵️ Agent',          fv('ppa_agent_nom', f)),
+      field('🎂 Naissance',      fv('ppa_agent_ddn', f)),
+      field('🪪 ID',             fv('ppa_agent_id', f)),
+      field('🎖 Grade agent',    fv('ppa_agent_grade', f)),
+      field('🔢 Matricule',      fv('ppa_agent_matricule', f)),
+      field('🗺️ District',       fv('ppa_agent_district', f)),
+      field('📞 Tél',            fv('ppa_agent_tel', f)),
+      field('🆘 Urgence',        fv('ppa_agent_urgence', f), false),
+      field('⚖️ Poids',          poids !== '—' ? poids + ' kg' : '—'),
+      field('📏 Taille',         taille !== '—' ? taille + ' cm' : '—'),
+      field('💪 Endurance',      fv('ppa_endurance', f)),
+      field('🦾 Force',          fv('ppa_force', f)),
+      field('❤️ FC',             fv('ppa_fc', f)),
+      field('🩸 Tension',        fv('ppa_ta', f)),
+      field('🩸 Groupe/Rh',      fv('ppa_gs', f) + ' ' + fv('ppa_rhesus', f)),
+      field('🍺 Alcool',         fv('ppa_alcool', f)),
+      field('🚬 Tabac',          fv('ppa_tabac', f)),
+      field('💊 Drogue',         fv('ppa_drogue', f)),
+      field('🔫 Aptitude — Résultats', '⬇️', false),
+      ...qFields(f, 'ppa'),
+      field('📝 Observation',    fv('ppa_observation', f), false),
+      field('✅ Recommandation',  fv('ppa_recommandation', f), false),
+    ],
+    document.getElementById('btn-submit-ppa')
+  );
+});
+
+// ── VISITE G6 ──
+document.getElementById('form-g6').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = e.target;
+
+  const poids = fv('g6_poids', f);
+  const taille = fv('g6_taille', f);
+
+  await sendToDiscord(
+    '🔬 Visite G6 — ' + fv('g6_agent_nom', f),
+    0xbf7c5c,
+    [
+      field('👨‍⚕️ Praticien',    fv('g6_prat_nom', f)),
+      field('🎖 Grade',          fv('g6_prat_grade', f)),
+      field('🏥 Hôpital',        fv('g6_prat_hopital', f)),
+      field('📅 Date',           fv('g6_prat_date', f)),
+      field('🕵️ Agent',          fv('g6_agent_nom', f)),
+      field('🎂 Naissance',      fv('g6_agent_ddn', f)),
+      field('🪪 ID',             fv('g6_agent_id', f)),
+      field('🎖 Grade agent',    fv('g6_agent_grade', f)),
+      field('🔢 Matricule',      fv('g6_agent_matricule', f)),
+      field('🗺️ District',       fv('g6_agent_district', f)),
+      field('📞 Tél',            fv('g6_agent_tel', f)),
+      field('🆘 Urgence',        fv('g6_agent_urgence', f), false),
+      field('⚖️ Poids',          poids !== '—' ? poids + ' kg' : '—'),
+      field('📏 Taille',         taille !== '—' ? taille + ' cm' : '—'),
+      field('💪 Endurance',      fv('g6_endurance', f)),
+      field('🦾 Force',          fv('g6_force', f)),
+      field('❤️ FC',             fv('g6_fc', f)),
+      field('🩸 Tension',        fv('g6_ta', f)),
+      field('🩸 Groupe/Rh',      fv('g6_gs', f) + ' ' + fv('g6_rhesus', f)),
+      field('🍺 Alcool',         fv('g6_alcool', f)),
+      field('🚬 Tabac',          fv('g6_tabac', f)),
+      field('💊 Drogue',         fv('g6_drogue', f)),
+      field('📋 PPA — Résultats', '⬇️', false),
+      ...qFields(f, 'g6'),
+      field('📝 Observation',    fv('g6_observation', f), false),
+      field('✅ Recommandation',  fv('g6_recommandation', f), false),
+    ],
+    document.getElementById('btn-submit-g6')
+  );
+});
+</script>
+</body>
+</html>
